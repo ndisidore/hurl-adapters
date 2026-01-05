@@ -9,8 +9,8 @@ use kdl::{KdlNode, KdlValue};
 
 use crate::formats::kdl::error::{Result, TranslationError};
 use crate::writer::helpers::{
-    dummy_source_info, empty_whitespace, newline_whitespace, simple_line_terminator, space,
-    template_with_placeholders,
+    dummy_source_info, empty_whitespace, newline_whitespace, quoted_template_with_placeholders,
+    simple_line_terminator, space, template_with_placeholders,
 };
 
 /// Translates a KDL body node to a hurl Body.
@@ -60,10 +60,12 @@ fn translate_json_body(node: &KdlNode) -> Result<Bytes> {
 /// Converts KDL nodes to a JSON object.
 fn kdl_to_json_object(nodes: &[KdlNode]) -> Result<JsonValue> {
     let mut elements = Vec::new();
+    let count = nodes.len();
 
-    for node in nodes {
+    for (i, node) in nodes.iter().enumerate() {
         let key = node.name().value();
         let value = kdl_node_to_json_value(node)?;
+        let is_last = i == count - 1;
 
         elements.push(JsonObjectElement {
             space0: "\n    ".to_string(),
@@ -71,7 +73,8 @@ fn kdl_to_json_object(nodes: &[KdlNode]) -> Result<JsonValue> {
             space1: String::new(),
             space2: " ".to_string(),
             value,
-            space3: String::new(),
+            // Add newline after last element for proper closing brace placement
+            space3: if is_last { "\n".to_string() } else { String::new() },
         });
     }
 
@@ -125,7 +128,7 @@ fn kdl_value_to_json(value: &KdlValue) -> Result<JsonValue> {
         KdlValue::String(s) => {
             // Check if it contains placeholders
             if s.contains("{{") {
-                Ok(JsonValue::String(template_with_placeholders(s)))
+                Ok(JsonValue::String(quoted_template_with_placeholders(s)))
             } else {
                 Ok(JsonValue::String(quoted_json_template(s)))
             }
@@ -339,6 +342,27 @@ mod tests {
             let source = json.to_source();
             assert!(source.as_str().contains("username"));
             assert!(source.as_str().contains("test"));
+        } else {
+            panic!("Expected JSON body");
+        }
+    }
+
+    #[test]
+    fn test_json_body_with_placeholder() {
+        let kdl: KdlDocument = r#"body json { password "{{PASSWORD}}" }"#
+            .parse()
+            .unwrap();
+        let node = kdl.nodes().first().unwrap();
+        let body = translate_body(node).unwrap();
+
+        if let hurl_core::ast::Bytes::Json(json) = body.value {
+            let source = json.to_source();
+            // Placeholder values must be quoted in JSON output
+            assert!(
+                source.as_str().contains(r#""{{PASSWORD}}""#),
+                "Expected quoted placeholder, got: {}",
+                source.as_str()
+            );
         } else {
             panic!("Expected JSON body");
         }

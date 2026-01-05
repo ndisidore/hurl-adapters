@@ -126,6 +126,14 @@ pub fn template_with_placeholders(value: &str) -> Template {
     }
 }
 
+/// Creates a template from a string that may contain `{{placeholder}}` syntax,
+/// wrapped in quotes for use in JSON string values.
+pub fn quoted_template_with_placeholders(value: &str) -> Template {
+    let mut template = template_with_placeholders(value);
+    template.delimiter = Some('"');
+    template
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -147,5 +155,12 @@ mod tests {
     fn test_template_with_multiple_placeholders() {
         let t = template_with_placeholders("{{a}} and {{b}}");
         assert_eq!(t.to_source().as_str(), "{{a}} and {{b}}");
+    }
+
+    #[test]
+    fn test_quoted_template_with_placeholders() {
+        let t = quoted_template_with_placeholders("Hello {{name}}");
+        assert_eq!(t.to_source().as_str(), r#""Hello {{name}}""#);
+        assert_eq!(t.delimiter, Some('"'));
     }
 }

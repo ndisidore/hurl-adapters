@@ -1,8 +1,9 @@
 //! Response translation from KDL to Hurl AST.
 
 use hurl_core::ast::{
-    Assert, Capture, CookiePath, KeyValue, Predicate, PredicateFuncValue, PredicateValue, Query,
-    QueryValue, Response, Section, SectionValue, Status, StatusValue, Version, VersionValue,
+    Assert, Capture, CookiePath, Expr, ExprKind, KeyValue, Placeholder, Predicate,
+    PredicateFuncValue, PredicateValue, Query, QueryValue, Response, Section, SectionValue, Status,
+    StatusValue, Variable, Version, VersionValue,
 };
 use kdl::{KdlNode, KdlValue};
 
@@ -176,8 +177,9 @@ fn translate_capture(node: &KdlNode, step_name: Option<&str>) -> Result<Capture>
     let var_name = node.name().value();
 
     // Prefix variable name with step name if provided
+    // Note: Hurl doesn't support dots in variable names, so we use underscore
     let full_name = if let Some(step) = step_name {
-        format!("{}.{}", step, var_name)
+        format!("{}_{}", step, var_name)
     } else {
         var_name.to_string()
     };
@@ -523,11 +525,38 @@ fn translate_predicate_func(op: &str, value: Option<&KdlValue>) -> Result<Predic
     }
 }
 
+/// Checks if a string is a pure placeholder like "{{foo}}" or "{{ foo }}"
+fn is_pure_placeholder(s: &str) -> Option<&str> {
+    let s = s.trim();
+    if s.starts_with("{{") && s.ends_with("}}") {
+        let inner = s[2..s.len() - 2].trim();
+        // Check it doesn't contain another {{ (which would mean multiple placeholders)
+        if !inner.contains("{{") && !inner.contains("}}") {
+            return Some(inner);
+        }
+    }
+    None
+}
+
 fn kdl_to_predicate_value(value: &KdlValue) -> Result<PredicateValue> {
     use hurl_core::typing::ToSource;
     match value {
         KdlValue::String(s) => {
-            if s.contains("{{") {
+            // Check if it's a pure placeholder like {{var}}
+            if let Some(var_name) = is_pure_placeholder(s) {
+                Ok(PredicateValue::Placeholder(Placeholder {
+                    space0: empty_whitespace(),
+                    expr: Expr {
+                        kind: ExprKind::Variable(Variable {
+                            name: var_name.to_string(),
+                            source_info: dummy_source_info(),
+                        }),
+                        source_info: dummy_source_info(),
+                    },
+                    space1: empty_whitespace(),
+                }))
+            } else if s.contains("{{") {
+                // String with embedded placeholders - serializer adds quotes if not starting with {{
                 Ok(PredicateValue::String(template_with_placeholders(s)))
             } else {
                 Ok(PredicateValue::String(simple_template(s)))
