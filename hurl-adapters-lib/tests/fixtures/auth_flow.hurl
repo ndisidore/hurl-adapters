@@ -2,18 +2,19 @@ POST https://api.example.com/auth/login
 Content-Type: application/json
 {
     "username": "testuser",
-    "password": {{PASSWORD}}}
+    "password": "{{PASSWORD}}"
+}
 HTTP 200
 [Captures]
-login.token: jsonpath "$.access_token"
-login.user_id: jsonpath "$.user.id"
+login_token: jsonpath "$.access_token"
+login_user_id: jsonpath "$.user.id"
 [Asserts]
 jsonpath "$.access_token" exists
 
-GET https://api.example.com/users/{{login.user_id}}
-Authorization: Bearer {{login.token}}
+GET https://api.example.com/users/{{login_user_id}}
+Authorization: Bearer {{login_token}}
 HTTP 200
 [Asserts]
-jsonpath "$.id" == {{login.user_id}}
+jsonpath "$.id" == {{login_user_id}}
 jsonpath "$.role" isString
 

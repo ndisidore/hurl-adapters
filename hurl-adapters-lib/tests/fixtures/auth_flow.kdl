@@ -18,14 +18,14 @@ POST "https://api.example.com/auth/login" name="login" {
     }
 }
 
-GET "https://api.example.com/users/{{login.user_id}}" {
+GET "https://api.example.com/users/{{login_user_id}}" {
     headers {
-        Authorization "Bearer {{login.token}}"
+        Authorization "Bearer {{login_token}}"
     }
     expect {
         status 200
         asserts {
-            jsonpath "$.id" "==" "{{login.user_id}}"
+            jsonpath "$.id" "==" "{{login_user_id}}"
             jsonpath "$.role" "isString"
         }
     }

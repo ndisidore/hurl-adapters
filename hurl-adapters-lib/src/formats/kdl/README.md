@@ -157,7 +157,7 @@ POST "https://api.example.com/auth/login" name="login" {
 // Step 2: Use the captured token
 GET "https://api.example.com/profile" {
     headers {
-        Authorization "Bearer {{login.token}}"
+        Authorization "Bearer {{login_token}}"
     }
     expect {
         status 200
@@ -167,8 +167,8 @@ GET "https://api.example.com/profile" {
 
 **Key points:**
 - `name="login"` names the first step
-- `token jsonpath "$.access_token"` captures the token as `login.token`
-- `{{login.token}}` references the captured value in subsequent requests
+- `token jsonpath "$.access_token"` captures the token as `login_token`
+- `{{login_token}}` references the captured value in subsequent requests
 
 ### Multi-Step Workflow: Create → Read → Update → Delete
 
@@ -191,28 +191,28 @@ POST "https://api.example.com/posts" name="create" {
             created_at jsonpath "$.created_at"
         }
         asserts {
-            jsonpath "$.id" exists
-            jsonpath "$.title" == "My First Post"
+            jsonpath "$.id" "exists"
+            jsonpath "$.title" "==" "My First Post"
         }
     }
 }
 
 // Read the created resource
-GET "https://api.example.com/posts/{{create.id}}" name="read" {
+GET "https://api.example.com/posts/{{create_id}}" name="read" {
     headers {
         Authorization "Bearer {{AUTH_TOKEN}}"
     }
     expect {
         status 200
         asserts {
-            jsonpath "$.id" == "{{create.id}}"
-            jsonpath "$.title" == "My First Post"
+            jsonpath "$.id" "==" "{{create_id}}"
+            jsonpath "$.title" "==" "My First Post"
         }
     }
 }
 
 // Update the resource
-PUT "https://api.example.com/posts/{{create.id}}" name="update" {
+PUT "https://api.example.com/posts/{{create_id}}" name="update" {
     headers {
         Content-Type "application/json"
         Authorization "Bearer {{AUTH_TOKEN}}"
@@ -228,14 +228,14 @@ PUT "https://api.example.com/posts/{{create.id}}" name="update" {
             updated_at jsonpath "$.updated_at"
         }
         asserts {
-            jsonpath "$.title" == "My Updated Post"
-            jsonpath "$.published" == true
+            jsonpath "$.title" "==" "My Updated Post"
+            jsonpath "$.published" "==" true
         }
     }
 }
 
 // Delete the resource
-DELETE "https://api.example.com/posts/{{create.id}}" {
+DELETE "https://api.example.com/posts/{{create_id}}" {
     headers {
         Authorization "Bearer {{AUTH_TOKEN}}"
     }
@@ -245,7 +245,7 @@ DELETE "https://api.example.com/posts/{{create.id}}" {
 }
 
 // Verify deletion
-GET "https://api.example.com/posts/{{create.id}}" {
+GET "https://api.example.com/posts/{{create_id}}" {
     headers {
         Authorization "Bearer {{AUTH_TOKEN}}"
     }
@@ -272,12 +272,12 @@ GET "https://app.example.com/login" name="csrf" {
 POST "https://app.example.com/login" name="auth" {
     headers {
         Content-Type "application/x-www-form-urlencoded"
-        X-CSRF-Token "{{csrf.token}}"
+        X-CSRF-Token "{{csrf_token}}"
     }
     form {
         username "admin"
         password "{{ADMIN_PASSWORD}}"
-        csrf_token "{{csrf.token}}"
+        csrf_token "{{csrf_token}}"
     }
     expect {
         status 302
@@ -289,9 +289,9 @@ POST "https://app.example.com/login" name="auth" {
 }
 
 // Step 3: Follow redirect to dashboard
-GET "{{auth.redirect}}" name="dashboard" {
+GET "{{auth_redirect}}" name="dashboard" {
     cookies {
-        session_id "{{auth.session}}"
+        session_id "{{auth_session}}"
     }
     expect {
         status 200
@@ -300,7 +300,7 @@ GET "{{auth.redirect}}" name="dashboard" {
             permissions jsonpath "$.user.permissions"
         }
         asserts {
-            jsonpath "$.user.role" == "admin"
+            jsonpath "$.user.role" "==" "admin"
         }
     }
 }
@@ -308,13 +308,13 @@ GET "{{auth.redirect}}" name="dashboard" {
 // Step 4: Access admin-only endpoint
 GET "https://app.example.com/admin/users" {
     cookies {
-        session_id "{{auth.session}}"
+        session_id "{{auth_session}}"
     }
     expect {
         status 200
         asserts {
-            jsonpath "$.users" isCollection
-            jsonpath "$.users[0].id" exists
+            jsonpath "$.users" "isCollection"
+            jsonpath "$.users[0].id" "exists"
         }
     }
 }
@@ -480,34 +480,34 @@ Validate response data:
 ```kdl
 asserts {
     // Equality
-    jsonpath "$.status" == "success"
-    jsonpath "$.count" == 42
+    jsonpath "$.status" "==" "success"
+    jsonpath "$.count" "==" 42
 
     // Comparisons
-    jsonpath "$.age" > 18
-    jsonpath "$.price" <= 99.99
+    jsonpath "$.age" ">" 18
+    jsonpath "$.price" "<=" 99.99
 
     // String operations
-    jsonpath "$.name" startsWith "John"
-    jsonpath "$.email" endsWith "@example.com"
-    jsonpath "$.description" contains "important"
-    jsonpath "$.code" matches "^[A-Z]{3}[0-9]{4}$"
+    jsonpath "$.name" "startsWith" "John"
+    jsonpath "$.email" "endsWith" "@example.com"
+    jsonpath "$.description" "contains" "important"
+    jsonpath "$.code" "matches" "^[A-Z]{3}[0-9]{4}$"
 
     // Existence
-    jsonpath "$.id" exists
-    jsonpath "$.deleted_at" not exists
+    jsonpath "$.id" "exists"
+    jsonpath "$.deleted_at" "not exists"
 
     // Type checks
-    jsonpath "$.count" isInteger
-    jsonpath "$.price" isFloat
-    jsonpath "$.active" isBoolean
-    jsonpath "$.name" isString
-    jsonpath "$.items" isCollection
-    jsonpath "$.tags" isEmpty
+    jsonpath "$.count" "isInteger"
+    jsonpath "$.price" "isFloat"
+    jsonpath "$.active" "isBoolean"
+    jsonpath "$.name" "isString"
+    jsonpath "$.items" "isCollection"
+    jsonpath "$.tags" "isEmpty"
 
     // Status and duration
-    status == 200
-    duration < 1000
+    status "==" 200
+    duration "<" 1000
 }
 ```
 
@@ -517,10 +517,12 @@ asserts {
 
 | Context | Capture Definition | Variable Reference |
 |---------|-------------------|-------------------|
-| Named step "login" | `token jsonpath "$.token"` | `{{login.token}}` |
-| Named step "api" | `user_id jsonpath "$.id"` | `{{api.user_id}}` |
+| Named step "login" | `token jsonpath "$.token"` | `{{login_token}}` |
+| Named step "api" | `user_id jsonpath "$.id"` | `{{api_user_id}}` |
 | Unnamed step | `token jsonpath "$.token"` | `{{token}}` |
 | Environment variable | N/A | `{{ENV_VAR}}` |
+
+> **Note:** Hurl doesn't support dots in variable names, so step-prefixed captures use underscores (e.g., `login_token` instead of `login.token`).
 
 ---
 
