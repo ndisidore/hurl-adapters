@@ -1,0 +1,9 @@
+[package]
+name = "hurl-adapters-lib"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+kdl = "6"
+hurl_core = "6"
+thiserror = "2"
