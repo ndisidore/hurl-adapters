@@ -1,0 +1,32 @@
+POST "https://api.example.com/auth/login" name="login" {
+    headers {
+        Content-Type "application/json"
+    }
+    body json {
+        username "testuser"
+        password "{{PASSWORD}}"
+    }
+    expect {
+        status 200
+        captures {
+            token jsonpath "$.access_token"
+            user_id jsonpath "$.user.id"
+        }
+        asserts {
+            jsonpath "$.access_token" "exists"
+        }
+    }
+}
+
+GET "https://api.example.com/users/{{login.user_id}}" {
+    headers {
+        Authorization "Bearer {{login.token}}"
+    }
+    expect {
+        status 200
+        asserts {
+            jsonpath "$.id" "==" "{{login.user_id}}"
+            jsonpath "$.role" "isString"
+        }
+    }
+}

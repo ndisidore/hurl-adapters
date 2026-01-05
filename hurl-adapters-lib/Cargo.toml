@@ -7,3 +7,6 @@ edition = "2024"
 kdl = "6"
 hurl_core = "6"
 thiserror = "2"
+
+[dev-dependencies]
+pretty_assertions = "1"

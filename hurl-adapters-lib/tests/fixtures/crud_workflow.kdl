@@ -1,0 +1,50 @@
+POST "https://api.example.com/posts" name="create" {
+    headers {
+        Content-Type "application/json"
+        Authorization "Bearer {{AUTH_TOKEN}}"
+    }
+    body json {
+        title "My First Post"
+        content "Hello, World!"
+    }
+    expect {
+        status 201
+        captures {
+            id jsonpath "$.id"
+        }
+        asserts {
+            jsonpath "$.id" "exists"
+            jsonpath "$.title" "==" "My First Post"
+        }
+    }
+}
+
+GET "https://api.example.com/posts/{{create.id}}" name="read" {
+    headers {
+        Authorization "Bearer {{AUTH_TOKEN}}"
+    }
+    expect {
+        status 200
+        asserts {
+            jsonpath "$.title" "==" "My First Post"
+        }
+    }
+}
+
+DELETE "https://api.example.com/posts/{{create.id}}" {
+    headers {
+        Authorization "Bearer {{AUTH_TOKEN}}"
+    }
+    expect {
+        status 204
+    }
+}
+
+GET "https://api.example.com/posts/{{create.id}}" {
+    headers {
+        Authorization "Bearer {{AUTH_TOKEN}}"
+    }
+    expect {
+        status 404
+    }
+}
