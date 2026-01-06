@@ -1,13 +1,11 @@
 //! Request translation from KDL to Hurl AST.
 
-use hurl_core::ast::{
-    Cookie, KeyValue, Method, MultipartParam, Request, Section, SectionValue,
-};
+use hurl_core::ast::{Cookie, KeyValue, Method, MultipartParam, Request, Section, SectionValue};
 use kdl::KdlNode;
 
+use crate::formats::kdl::VALID_HTTP_METHODS;
 use crate::formats::kdl::body::translate_body;
 use crate::formats::kdl::error::{Result, TranslationError};
-use crate::formats::kdl::VALID_HTTP_METHODS;
 use crate::writer::helpers::{
     dummy_source_info, empty_whitespace, simple_line_terminator, simple_template, space,
     template_with_placeholders,

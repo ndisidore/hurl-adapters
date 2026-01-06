@@ -5,10 +5,10 @@ use std::collections::HashSet;
 use hurl_core::ast::{Entry, HurlFile};
 use kdl::{KdlDocument, KdlNode};
 
+use crate::formats::kdl::VALID_HTTP_METHODS;
 use crate::formats::kdl::error::{Result, TranslationError};
 use crate::formats::kdl::request::{get_step_name, translate_request};
 use crate::formats::kdl::response::translate_response;
-use crate::formats::kdl::VALID_HTTP_METHODS;
 use crate::writer::hurl_file_to_string;
 
 /// Translates a KDL document to a Hurl file AST.
@@ -172,6 +172,9 @@ mod tests {
         .unwrap();
 
         let result = translate(&kdl);
-        assert!(matches!(result, Err(TranslationError::DuplicateStepName(_))));
+        assert!(matches!(
+            result,
+            Err(TranslationError::DuplicateStepName(_))
+        ));
     }
 }

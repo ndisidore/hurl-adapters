@@ -9,7 +9,7 @@ use clap::{Parser, ValueEnum};
 use kdl::KdlDocument;
 use thiserror::Error;
 
-use hurl_adapters_lib::formats::kdl::{translate_to_string, TranslationError};
+use hurl_adapters_lib::formats::kdl::{TranslationError, translate_to_string};
 
 // ============================================================================
 // Error Types

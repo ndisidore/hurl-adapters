@@ -21,16 +21,14 @@ fn fixture_dir() -> PathBuf {
 /// Translates a KDL fixture file to a Hurl string and validates the output.
 fn translate_fixture(name: &str) -> String {
     let kdl_path = fixture_dir().join(format!("{name}.kdl"));
-    let kdl_input =
-        fs::read_to_string(&kdl_path).unwrap_or_else(|_| panic!("Failed to read {}", kdl_path.display()));
+    let kdl_input = fs::read_to_string(&kdl_path)
+        .unwrap_or_else(|_| panic!("Failed to read {}", kdl_path.display()));
     let doc: KdlDocument = kdl_input.parse().expect("Failed to parse KDL");
     let hurl_output = translate_to_string(&doc).expect("Failed to translate");
 
     // Validate that the generated Hurl is parseable
     parse_hurl_file(&hurl_output).unwrap_or_else(|e| {
-        panic!(
-            "Generated Hurl for '{name}' is invalid:\n{e:?}\n\nGenerated output:\n{hurl_output}"
-        )
+        panic!("Generated Hurl for '{name}' is invalid:\n{e:?}\n\nGenerated output:\n{hurl_output}")
     });
 
     hurl_output
