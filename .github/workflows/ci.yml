@@ -16,13 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
+      - name: Install mise
+        uses: jdx/mise-action@v3
 
       - name: Check formatting
-        run: cargo fmt --check --all
+        run: mise run fmt-check
 
   build:
     name: Build
@@ -30,8 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install mise
+        uses: jdx/mise-action@v3
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -44,11 +42,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Build hurl-adapters-lib
-        run: cargo build --package hurl-adapters-lib
-
-      - name: Build hurl-adapters-cli
-        run: cargo build --package hurl-adapters-cli
+      - name: Build
+        run: mise run build
 
   clippy:
     name: Clippy
@@ -56,10 +51,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+      - name: Install mise
+        uses: jdx/mise-action@v3
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -72,11 +65,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Clippy hurl-adapters-lib
-        run: cargo clippy --package hurl-adapters-lib -- -D warnings
-
-      - name: Clippy hurl-adapters-cli
-        run: cargo clippy --package hurl-adapters-cli -- -D warnings
+      - name: Clippy
+        run: mise run clippy
 
   test:
     name: Test
@@ -84,8 +74,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install mise
+        uses: jdx/mise-action@v3
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -98,8 +88,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Run tests
-        run: cargo test --workspace
+      - name: Test
+        run: mise run test
 
   audit:
     name: Security Audit
@@ -107,11 +97,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
+      - name: Install mise
+        uses: jdx/mise-action@v3
 
       - name: Run security audit
-        run: cargo audit
+        run: mise run audit
