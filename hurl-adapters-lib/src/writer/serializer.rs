@@ -126,7 +126,7 @@ pub fn format_section(section: &Section) -> String {
                         output.push_str(kv.value.to_source().as_str());
                         output.push('\n');
                     }
-                    MultipartParam::FileParam(fp) => {
+                    MultipartParam::FilenameParam(fp) => {
                         output.push_str(fp.key.to_source().as_str());
                         output.push(':');
                         output.push_str(" file,");
@@ -190,6 +190,7 @@ pub fn format_query(query: &Query) -> String {
         QueryValue::Md5 => "md5".to_string(),
         QueryValue::Certificate { .. } => "certificate".to_string(),
         QueryValue::Ip => "ip".to_string(),
+        QueryValue::Redirects => "redirects".to_string(),
     }
 }
 
@@ -248,6 +249,9 @@ pub fn format_predicate(predicate: &Predicate) -> String {
         PredicateFuncValue::IsString => "isString".to_string(),
         PredicateFuncValue::IsIpv4 => "isIpv4".to_string(),
         PredicateFuncValue::IsIpv6 => "isIpv6".to_string(),
+        PredicateFuncValue::IsList => "isList".to_string(),
+        PredicateFuncValue::IsObject => "isObject".to_string(),
+        PredicateFuncValue::IsUuid => "isUuid".to_string(),
     };
 
     output.push_str(&pred_str);

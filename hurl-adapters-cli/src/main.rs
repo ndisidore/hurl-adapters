@@ -5,44 +5,11 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use anyhow::{Context, Result};
 use clap::{Parser, ValueEnum};
 use kdl::KdlDocument;
-use thiserror::Error;
 
-use hurl_adapters_lib::formats::kdl::{TranslationError, translate_to_string};
-
-// ============================================================================
-// Error Types
-// ============================================================================
-
-#[derive(Debug, Error)]
-enum CliError {
-    #[error("failed to read file '{path}'")]
-    ReadFile {
-        path: PathBuf,
-        #[source]
-        source: io::Error,
-    },
-
-    #[error("failed to read from stdin")]
-    ReadStdin(#[source] io::Error),
-
-    #[error("failed to write file '{path}'")]
-    WriteFile {
-        path: PathBuf,
-        #[source]
-        source: io::Error,
-    },
-
-    #[error("failed to write to stdout")]
-    WriteStdout(#[source] io::Error),
-
-    #[error("KDL parse error: {0}")]
-    KdlParse(#[source] kdl::KdlError),
-
-    #[error("translation error: {0}")]
-    Translation(#[source] TranslationError),
-}
+use hurl_adapters_lib::formats::kdl::translate_to_string;
 
 // ============================================================================
 // CLI Arguments
@@ -83,44 +50,38 @@ struct Args {
 // Core Logic
 // ============================================================================
 
-fn read_input(path: Option<&PathBuf>) -> Result<String, CliError> {
+fn read_input(path: Option<&PathBuf>) -> Result<String> {
     if let Some(p) = path {
-        fs::read_to_string(p).map_err(|e| CliError::ReadFile {
-            path: p.clone(),
-            source: e,
-        })
+        fs::read_to_string(p).with_context(|| format!("failed to read file '{}'", p.display()))
     } else {
         let mut buffer = String::new();
         io::stdin()
             .read_to_string(&mut buffer)
-            .map_err(CliError::ReadStdin)?;
+            .context("failed to read from stdin")?;
         Ok(buffer)
     }
 }
 
-fn write_output(path: Option<&PathBuf>, content: &str) -> Result<(), CliError> {
+fn write_output(path: Option<&PathBuf>, content: &str) -> Result<()> {
     if let Some(p) = path {
-        fs::write(p, content).map_err(|e| CliError::WriteFile {
-            path: p.clone(),
-            source: e,
-        })
+        fs::write(p, content).with_context(|| format!("failed to write file '{}'", p.display()))
     } else {
         io::stdout()
             .write_all(content.as_bytes())
-            .map_err(CliError::WriteStdout)
+            .context("failed to write to stdout")
     }
 }
 
-fn run(args: &Args) -> Result<(), CliError> {
+fn run(args: &Args) -> Result<()> {
     // Read input (file or stdin)
     let input = read_input(args.input.as_ref())?;
 
     // Parse KDL document
-    let doc: KdlDocument = input.parse().map_err(CliError::KdlParse)?;
+    let doc: KdlDocument = input.parse().context("KDL parse error")?;
 
     // Translate to Hurl format (format arg is for future extensibility)
     let hurl_output = match args.format {
-        InputFormat::Kdl => translate_to_string(&doc).map_err(CliError::Translation)?,
+        InputFormat::Kdl => translate_to_string(&doc).context("translation error")?,
     };
 
     // Check mode: validate only, no output
@@ -151,7 +112,7 @@ fn main() -> ExitCode {
     match run(&args) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("error: {e}");
+            eprintln!("error: {e:#}");
             ExitCode::FAILURE
         }
     }

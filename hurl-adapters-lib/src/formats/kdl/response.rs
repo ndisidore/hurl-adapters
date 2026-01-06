@@ -203,7 +203,7 @@ fn translate_capture(node: &KdlNode, step_name: Option<&str>) -> Result<Capture>
         query,
         filters: vec![],
         space3: empty_whitespace(),
-        redact: false,
+        redacted: false,
         line_terminator0: simple_line_terminator(),
     })
 }
