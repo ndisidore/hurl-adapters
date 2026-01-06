@@ -56,7 +56,7 @@ pub fn hurl_file_to_string(hurl_file: &HurlFile) -> String {
 pub fn format_bytes(bytes: &Bytes) -> String {
     match bytes {
         Bytes::Json(json) => json.to_source().to_string(),
-        Bytes::Xml(xml) => xml.to_string(),
+        Bytes::Xml(xml) => xml.clone(),
         Bytes::MultilineString(m) => m.to_source().to_string(),
         Bytes::OnelineString(s) => format!("`{}`", s.to_source()),
         Bytes::Base64(b) => format!("base64,{};", b.source),

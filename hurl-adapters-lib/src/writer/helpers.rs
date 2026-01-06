@@ -74,7 +74,9 @@ pub fn template_with_placeholders(value: &str) -> Template {
 
     while current_pos < chars.len() {
         // Look for {{
-        if current_pos + 1 < chars.len() && chars[current_pos] == '{' && chars[current_pos + 1] == '{'
+        if current_pos + 1 < chars.len()
+            && chars[current_pos] == '{'
+            && chars[current_pos + 1] == '{'
         {
             // Find closing }}
             let start = current_pos + 2;

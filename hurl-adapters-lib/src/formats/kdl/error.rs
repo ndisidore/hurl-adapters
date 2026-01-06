@@ -24,7 +24,9 @@ pub enum TranslationError {
     #[error("Duplicate step name: '{0}'")]
     DuplicateStepName(String),
 
-    #[error("Unknown variable reference '{{{{variable}}}}' - step '{step}' not found or has no such capture")]
+    #[error(
+        "Unknown variable reference '{{{{variable}}}}' - step '{step}' not found or has no such capture"
+    )]
     UnknownReference { variable: String, step: String },
 
     #[error("Invalid KDL structure: {0}")]

@@ -91,7 +91,7 @@ fn translate_status(node: &KdlNode) -> Result<Status> {
                     u64::MAX
                 )));
             }
-        }
+        },
         _ => StatusValue::Any,
     };
 
@@ -287,7 +287,7 @@ fn translate_query(query_type: &str, args: &[&kdl::KdlEntry]) -> Result<Query> {
         _ => {
             return Err(TranslationError::InvalidStructure(format!(
                 "unknown query type: {query_type}"
-            )))
+            )));
         }
     };
 
@@ -323,18 +323,19 @@ fn translate_assert(node: &KdlNode) -> Result<Assert> {
     let entries: Vec<_> = node.entries().iter().collect();
 
     // Find the predicate operator and value
-    let (query, predicate) = if query_type == "status" || query_type == "duration" || query_type == "version" {
-        let query = translate_query(query_type, &[])?;
-        let predicate = translate_predicate_from_entries(&entries)?;
-        (query, predicate)
-    } else {
-        let query_args = entries.get(0..1).unwrap_or_default();
-        let predicate_entries = entries.get(1..).unwrap_or_default();
+    let (query, predicate) =
+        if query_type == "status" || query_type == "duration" || query_type == "version" {
+            let query = translate_query(query_type, &[])?;
+            let predicate = translate_predicate_from_entries(&entries)?;
+            (query, predicate)
+        } else {
+            let query_args = entries.get(0..1).unwrap_or_default();
+            let predicate_entries = entries.get(1..).unwrap_or_default();
 
-        let query = translate_query(query_type, query_args)?;
-        let predicate = translate_predicate_from_entries(predicate_entries)?;
-        (query, predicate)
-    };
+            let query = translate_query(query_type, query_args)?;
+            let predicate = translate_predicate_from_entries(predicate_entries)?;
+            (query, predicate)
+        };
 
     Ok(Assert {
         line_terminators: vec![],
@@ -444,7 +445,9 @@ fn translate_predicate_func(op: &str, value: Option<&KdlValue>) -> Result<Predic
         }
         ">=" | "greaterThanOrEquals" => {
             let val = value.ok_or_else(|| {
-                TranslationError::InvalidPredicate("greaterThanOrEquals requires a value".to_string())
+                TranslationError::InvalidPredicate(
+                    "greaterThanOrEquals requires a value".to_string(),
+                )
             })?;
             Ok(PredicateFuncValue::GreaterThanOrEqual {
                 space0: space(),

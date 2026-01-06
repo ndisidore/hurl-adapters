@@ -1,8 +1,8 @@
 //! Body handling for KDL to Hurl translation.
 
 use hurl_core::ast::{
-    Base64, Body, Bytes, File, GraphQl, GraphQlVariables, Hex, JsonListElement,
-    JsonObjectElement, JsonValue, MultilineString, MultilineStringKind, Template,
+    Base64, Body, Bytes, File, GraphQl, GraphQlVariables, Hex, JsonListElement, JsonObjectElement,
+    JsonValue, MultilineString, MultilineStringKind, Template,
 };
 use hurl_core::typing::ToSource;
 use kdl::{KdlNode, KdlValue};
@@ -39,7 +39,7 @@ pub fn translate_body(node: &KdlNode) -> Result<Body> {
         other => {
             return Err(TranslationError::InvalidBody {
                 reason: format!("unknown body type: {other}"),
-            })
+            });
         }
     };
 
@@ -53,9 +53,11 @@ pub fn translate_body(node: &KdlNode) -> Result<Body> {
 
 /// Translates a JSON body from KDL children to hurl `JsonValue`.
 fn translate_json_body(node: &KdlNode) -> Result<Bytes> {
-    let children = node.children().ok_or_else(|| TranslationError::InvalidBody {
-        reason: "json body requires children nodes".to_string(),
-    })?;
+    let children = node
+        .children()
+        .ok_or_else(|| TranslationError::InvalidBody {
+            reason: "json body requires children nodes".to_string(),
+        })?;
 
     let json = kdl_to_json_object(children.nodes())?;
     Ok(Bytes::Json(json))
@@ -78,7 +80,11 @@ fn kdl_to_json_object(nodes: &[KdlNode]) -> Result<JsonValue> {
             space2: " ".to_string(),
             value,
             // Add newline after last element for proper closing brace placement
-            space3: if is_last { "\n".to_string() } else { String::new() },
+            space3: if is_last {
+                "\n".to_string()
+            } else {
+                String::new()
+            },
         });
     }
 
@@ -188,7 +194,10 @@ fn translate_graphql_body(node: &KdlNode) -> Result<Bytes> {
 
     // Check for variables in children
     let variables = if let Some(children) = node.children() {
-        let vars_node = children.nodes().iter().find(|n| n.name().value() == "variables");
+        let vars_node = children
+            .nodes()
+            .iter()
+            .find(|n| n.name().value() == "variables");
         if let Some(vars) = vars_node {
             if let Some(vars_children) = vars.children() {
                 Some(GraphQlVariables {
@@ -305,7 +314,10 @@ fn translate_hex_body(node: &KdlNode) -> Result<Bytes> {
             })?;
 
             u8::from_str_radix(s, 16).map_err(|e| TranslationError::InvalidHex {
-                reason: format!("invalid hex character(s) '{s}' at position {}: {e}", idx * 2),
+                reason: format!(
+                    "invalid hex character(s) '{s}' at position {}: {e}",
+                    idx * 2
+                ),
             })
         })
         .collect();
@@ -329,9 +341,7 @@ mod tests {
 
     #[test]
     fn test_json_body() {
-        let kdl: KdlDocument = r#"body json { username "test"; count 42 }"#
-            .parse()
-            .unwrap();
+        let kdl: KdlDocument = r#"body json { username "test"; count 42 }"#.parse().unwrap();
         let node = kdl.nodes().first().unwrap();
         let body = translate_body(node).unwrap();
 
@@ -347,9 +357,7 @@ mod tests {
 
     #[test]
     fn test_json_body_with_placeholder() {
-        let kdl: KdlDocument = r#"body json { password "{{PASSWORD}}" }"#
-            .parse()
-            .unwrap();
+        let kdl: KdlDocument = r#"body json { password "{{PASSWORD}}" }"#.parse().unwrap();
         let node = kdl.nodes().first().unwrap();
         let body = translate_body(node).unwrap();
 
