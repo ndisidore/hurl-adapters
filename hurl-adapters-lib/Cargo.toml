@@ -8,7 +8,7 @@ workspace = true
 
 [dependencies]
 kdl = "6"
-hurl_core = "6"
+hurl_core = "7"
 thiserror = "2"
 
 [dev-dependencies]
