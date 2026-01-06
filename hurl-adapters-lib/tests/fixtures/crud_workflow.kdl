@@ -13,7 +13,7 @@ POST "https://api.example.com/posts" name="create" {
             id jsonpath "$.id"
         }
         asserts {
-            jsonpath "$.id" "exists"
+            jsonpath "$.id" exists
             jsonpath "$.title" "==" "My First Post"
         }
     }
