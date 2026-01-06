@@ -5,6 +5,7 @@ use hurl_core::reader::Pos;
 use hurl_core::typing::ToSource;
 
 /// Creates a dummy source info pointing to line 1, column 1.
+#[must_use]
 pub fn dummy_source_info() -> SourceInfo {
     SourceInfo {
         start: Pos { line: 1, column: 1 },
@@ -13,6 +14,7 @@ pub fn dummy_source_info() -> SourceInfo {
 }
 
 /// Creates whitespace with a single space.
+#[must_use]
 pub fn space() -> Whitespace {
     Whitespace {
         value: " ".to_string(),
@@ -21,6 +23,7 @@ pub fn space() -> Whitespace {
 }
 
 /// Creates empty whitespace.
+#[must_use]
 pub fn empty_whitespace() -> Whitespace {
     Whitespace {
         value: String::new(),
@@ -29,6 +32,7 @@ pub fn empty_whitespace() -> Whitespace {
 }
 
 /// Creates a newline whitespace.
+#[must_use]
 pub fn newline_whitespace() -> Whitespace {
     Whitespace {
         value: "\n".to_string(),
@@ -37,6 +41,7 @@ pub fn newline_whitespace() -> Whitespace {
 }
 
 /// Creates a simple line terminator (newline without comment).
+#[must_use]
 pub fn simple_line_terminator() -> LineTerminator {
     LineTerminator {
         space0: empty_whitespace(),
@@ -46,6 +51,7 @@ pub fn simple_line_terminator() -> LineTerminator {
 }
 
 /// Creates a template from a simple string (no placeholders).
+#[must_use]
 pub fn simple_template(value: &str) -> Template {
     Template {
         delimiter: None,
@@ -59,6 +65,8 @@ pub fn simple_template(value: &str) -> Template {
 
 /// Creates a template that may contain placeholders like `{{variable}}`.
 /// This parses the string and converts `{{...}}` into Expression elements.
+#[must_use]
+#[allow(clippy::indexing_slicing)]
 pub fn template_with_placeholders(value: &str) -> Template {
     let mut elements = Vec::new();
     let mut current_pos = 0;
@@ -82,7 +90,7 @@ pub fn template_with_placeholders(value: &str) -> Template {
                     space0: empty_whitespace(),
                     expr: hurl_core::ast::Expr {
                         kind: hurl_core::ast::ExprKind::Variable(hurl_core::ast::Variable {
-                            name: var_name.clone(),
+                            name: var_name,
                             source_info: dummy_source_info(),
                         }),
                         source_info: dummy_source_info(),
@@ -94,8 +102,8 @@ pub fn template_with_placeholders(value: &str) -> Template {
                 // No closing }}, treat as literal
                 let ch = chars[current_pos].to_string();
                 elements.push(TemplateElement::String {
-                    value: ch.clone(),
                     source: ch.to_source(),
+                    value: ch,
                 });
                 current_pos += 1;
             }
@@ -112,8 +120,8 @@ pub fn template_with_placeholders(value: &str) -> Template {
             let text: String = chars[start..current_pos].iter().collect();
             if !text.is_empty() {
                 elements.push(TemplateElement::String {
-                    value: text.clone(),
                     source: text.to_source(),
+                    value: text,
                 });
             }
         }
@@ -128,6 +136,7 @@ pub fn template_with_placeholders(value: &str) -> Template {
 
 /// Creates a template from a string that may contain `{{placeholder}}` syntax,
 /// wrapped in quotes for use in JSON string values.
+#[must_use]
 pub fn quoted_template_with_placeholders(value: &str) -> Template {
     let mut template = template_with_placeholders(value);
     template.delimiter = Some('"');

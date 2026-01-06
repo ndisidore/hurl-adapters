@@ -14,11 +14,15 @@ use crate::writer::helpers::{
 };
 
 /// Translates a KDL body node to a hurl Body.
+///
+/// # Errors
+///
+/// Returns an error if the body type is invalid or missing.
 pub fn translate_body(node: &KdlNode) -> Result<Body> {
     let body_type = node
         .entries()
         .iter()
-        .find_map(|e| e.name().map(|n| n.value()))
+        .find_map(|e| e.name().map(kdl::KdlIdentifier::value))
         .or_else(|| node.entries().first().and_then(|e| e.value().as_string()))
         .ok_or_else(|| TranslationError::InvalidBody {
             reason: "body node must specify type (json, xml, text, file, base64, hex)".to_string(),
@@ -34,7 +38,7 @@ pub fn translate_body(node: &KdlNode) -> Result<Body> {
         "hex" => translate_hex_body(node)?,
         other => {
             return Err(TranslationError::InvalidBody {
-                reason: format!("unknown body type: {}", other),
+                reason: format!("unknown body type: {other}"),
             })
         }
     };
@@ -47,7 +51,7 @@ pub fn translate_body(node: &KdlNode) -> Result<Body> {
     })
 }
 
-/// Translates a JSON body from KDL children to hurl JsonValue.
+/// Translates a JSON body from KDL children to hurl `JsonValue`.
 fn translate_json_body(node: &KdlNode) -> Result<Bytes> {
     let children = node.children().ok_or_else(|| TranslationError::InvalidBody {
         reason: "json body requires children nodes".to_string(),
@@ -96,26 +100,26 @@ fn kdl_node_to_json_value(node: &KdlNode) -> Result<JsonValue> {
 
     // If first entry is an array-like structure (multiple values without names)
     if entries.len() > 1 && entries.iter().all(|e| e.name().is_none()) {
-        let elements: Result<Vec<_>> = entries
+        let elements: Vec<_> = entries
             .iter()
             .map(|e| {
-                let val = kdl_value_to_json(e.value())?;
-                Ok(JsonListElement {
+                let val = kdl_value_to_json(e.value());
+                JsonListElement {
                     space0: String::new(),
                     value: val,
                     space1: String::new(),
-                })
+                }
             })
             .collect();
         return Ok(JsonValue::List {
             space0: String::new(),
-            elements: elements?,
+            elements,
         });
     }
 
     // Single value
     if let Some(entry) = entries.first() {
-        return kdl_value_to_json(entry.value());
+        return Ok(kdl_value_to_json(entry.value()));
     }
 
     // No value means null
@@ -123,20 +127,20 @@ fn kdl_node_to_json_value(node: &KdlNode) -> Result<JsonValue> {
 }
 
 /// Converts a KDL value to a JSON value.
-fn kdl_value_to_json(value: &KdlValue) -> Result<JsonValue> {
+fn kdl_value_to_json(value: &KdlValue) -> JsonValue {
     match value {
         KdlValue::String(s) => {
             // Check if it contains placeholders
             if s.contains("{{") {
-                Ok(JsonValue::String(quoted_template_with_placeholders(s)))
+                JsonValue::String(quoted_template_with_placeholders(s))
             } else {
-                Ok(JsonValue::String(quoted_json_template(s)))
+                JsonValue::String(quoted_json_template(s))
             }
         }
-        KdlValue::Integer(i) => Ok(JsonValue::Number(i.to_string())),
-        KdlValue::Float(f) => Ok(JsonValue::Number(f.to_string())),
-        KdlValue::Bool(b) => Ok(JsonValue::Boolean(*b)),
-        KdlValue::Null => Ok(JsonValue::Null),
+        KdlValue::Integer(i) => JsonValue::Number(i.to_string()),
+        KdlValue::Float(f) => JsonValue::Number(f.to_string()),
+        KdlValue::Bool(b) => JsonValue::Boolean(*b),
+        KdlValue::Null => JsonValue::Null,
     }
 }
 
@@ -283,7 +287,10 @@ fn translate_hex_body(node: &KdlNode) -> Result<Bytes> {
     // Validate hex string has even length
     if hex_string.len() % 2 != 0 {
         return Err(TranslationError::InvalidHex {
-            reason: format!("hex string has odd length ({}), must be even", hex_string.len()),
+            reason: format!(
+                "hex string has odd length ({}), must be even",
+                hex_string.len()
+            ),
         });
     }
 
@@ -294,20 +301,11 @@ fn translate_hex_body(node: &KdlNode) -> Result<Bytes> {
         .enumerate()
         .map(|(idx, chunk)| {
             let s = std::str::from_utf8(chunk).map_err(|e| TranslationError::InvalidHex {
-                reason: format!(
-                    "invalid UTF-8 in hex string at position {}: {}",
-                    idx * 2,
-                    e
-                ),
+                reason: format!("invalid UTF-8 in hex string at position {}: {e}", idx * 2),
             })?;
 
             u8::from_str_radix(s, 16).map_err(|e| TranslationError::InvalidHex {
-                reason: format!(
-                    "invalid hex character(s) '{}' at position {}: {}",
-                    s,
-                    idx * 2,
-                    e
-                ),
+                reason: format!("invalid hex character(s) '{s}' at position {}: {e}", idx * 2),
             })
         })
         .collect();

@@ -3,6 +3,9 @@ name = "hurl-adapters-lib"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 kdl = "6"
 hurl_core = "6"

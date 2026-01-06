@@ -14,6 +14,10 @@ use crate::writer::helpers::{
 };
 
 /// Translates an expect node to a hurl Response.
+///
+/// # Errors
+///
+/// Returns an error if the response structure is invalid.
 pub fn translate_response(node: &KdlNode, step_name: Option<&str>) -> Result<Response> {
     let mut status = Status {
         value: StatusValue::Any,
@@ -33,10 +37,10 @@ pub fn translate_response(node: &KdlNode, step_name: Option<&str>) -> Result<Res
                     status = translate_status(child)?;
                 }
                 "version" => {
-                    version = translate_version(child)?;
+                    version = translate_version(child);
                 }
                 "headers" => {
-                    headers.extend(translate_response_headers(child)?);
+                    headers.extend(translate_response_headers(child));
                 }
                 "captures" => {
                     sections.push(translate_captures_section(child, step_name)?);
@@ -46,8 +50,7 @@ pub fn translate_response(node: &KdlNode, step_name: Option<&str>) -> Result<Res
                 }
                 other => {
                     return Err(TranslationError::InvalidStructure(format!(
-                        "unknown expect section: {}",
-                        other
+                        "unknown expect section: {other}"
                     )));
                 }
             }
@@ -73,26 +76,22 @@ fn translate_status(node: &KdlNode) -> Result<Status> {
     let value = node
         .entries()
         .first()
-        .map(|e| e.value())
+        .map(kdl::KdlEntry::value)
         .ok_or_else(|| TranslationError::MissingRequiredField {
             node: "status".to_string(),
             field: "value".to_string(),
         })?;
 
     let status_value = match value {
-        KdlValue::Integer(i) => {
-            match (*i).try_into() {
-                Ok(u) => StatusValue::Specific(u),
-                Err(_) => {
-                    return Err(TranslationError::InvalidStructure(format!(
-                        "status code must be a non-negative integer between 0 and {}, got: {}",
-                        u64::MAX,
-                        i
-                    )));
-                }
+        KdlValue::Integer(i) => match (*i).try_into() {
+            Ok(u) => StatusValue::Specific(u),
+            Err(_) => {
+                return Err(TranslationError::InvalidStructure(format!(
+                    "status code must be a non-negative integer between 0 and {}, got: {i}",
+                    u64::MAX
+                )));
             }
         }
-        KdlValue::String(s) if s == "*" => StatusValue::Any,
         _ => StatusValue::Any,
     };
 
@@ -103,7 +102,7 @@ fn translate_status(node: &KdlNode) -> Result<Status> {
 }
 
 /// Translates a version node.
-fn translate_version(node: &KdlNode) -> Result<Version> {
+fn translate_version(node: &KdlNode) -> Version {
     let value = node
         .entries()
         .first()
@@ -115,17 +114,17 @@ fn translate_version(node: &KdlNode) -> Result<Version> {
         "HTTP/1.1" => VersionValue::Version11,
         "HTTP/2" => VersionValue::Version2,
         "HTTP/3" => VersionValue::Version3,
-        "*" | _ => VersionValue::VersionAny,
+        _ => VersionValue::VersionAny,
     };
 
-    Ok(Version {
+    Version {
         value: version_value,
         source_info: dummy_source_info(),
-    })
+    }
 }
 
 /// Translates response headers.
-fn translate_response_headers(node: &KdlNode) -> Result<Vec<KeyValue>> {
+fn translate_response_headers(node: &KdlNode) -> Vec<KeyValue> {
     let mut headers = Vec::new();
 
     if let Some(children) = node.children() {
@@ -149,7 +148,7 @@ fn translate_response_headers(node: &KdlNode) -> Result<Vec<KeyValue>> {
         }
     }
 
-    Ok(headers)
+    headers
 }
 
 /// Translates a captures section.
@@ -179,7 +178,7 @@ fn translate_capture(node: &KdlNode, step_name: Option<&str>) -> Result<Capture>
     // Prefix variable name with step name if provided
     // Note: Hurl doesn't support dots in variable names, so we use underscore
     let full_name = if let Some(step) = step_name {
-        format!("{}_{}", step, var_name)
+        format!("{step}_{var_name}")
     } else {
         var_name.to_string()
     };
@@ -189,11 +188,11 @@ fn translate_capture(node: &KdlNode, step_name: Option<&str>) -> Result<Capture>
         .first()
         .and_then(|e| e.value().as_string())
         .ok_or_else(|| TranslationError::MissingRequiredField {
-            node: format!("capture.{}", var_name),
+            node: format!("capture.{var_name}"),
             field: "query_type".to_string(),
         })?;
 
-    let query = translate_query(query_type, &entries[1..])?;
+    let query = translate_query(query_type, entries.get(1..).unwrap_or_default())?;
 
     Ok(Capture {
         line_terminators: vec![],
@@ -287,8 +286,7 @@ fn translate_query(query_type: &str, args: &[&kdl::KdlEntry]) -> Result<Query> {
         "version" => QueryValue::Version,
         _ => {
             return Err(TranslationError::InvalidStructure(format!(
-                "unknown query type: {}",
-                query_type
+                "unknown query type: {query_type}"
             )))
         }
     };
@@ -330,8 +328,8 @@ fn translate_assert(node: &KdlNode) -> Result<Assert> {
         let predicate = translate_predicate_from_entries(&entries)?;
         (query, predicate)
     } else {
-        let query_args = if entries.is_empty() { &[] } else { &entries[0..1] };
-        let predicate_entries = if entries.len() > 1 { &entries[1..] } else { &[] };
+        let query_args = entries.get(0..1).unwrap_or_default();
+        let predicate_entries = entries.get(1..).unwrap_or_default();
 
         let query = translate_query(query_type, query_args)?;
         let predicate = translate_predicate_from_entries(predicate_entries)?;
@@ -364,16 +362,14 @@ fn translate_predicate_from_entries(entries: &[&kdl::KdlEntry]) -> Result<Predic
                 op = Some(name_str.to_string());
                 value = Some(entry.value());
             }
-        } else {
-            if let Some(s) = entry.value().as_string() {
-                if is_operator(s) || is_predicate_name(s) {
-                    op = Some(s.to_string());
-                } else {
-                    value = Some(entry.value());
-                }
+        } else if let Some(s) = entry.value().as_string() {
+            if is_operator(s) || is_predicate_name(s) {
+                op = Some(s.to_string());
             } else {
                 value = Some(entry.value());
             }
+        } else {
+            value = Some(entry.value());
         }
     }
 
@@ -416,6 +412,7 @@ fn is_predicate_name(s: &str) -> bool {
     )
 }
 
+#[allow(clippy::too_many_lines)]
 fn translate_predicate_func(op: &str, value: Option<&KdlValue>) -> Result<PredicateFuncValue> {
     match op {
         "==" | "equals" => {
@@ -519,8 +516,7 @@ fn translate_predicate_func(op: &str, value: Option<&KdlValue>) -> Result<Predic
         "isDate" => Ok(PredicateFuncValue::IsDate),
         "isIsoDate" => Ok(PredicateFuncValue::IsIsoDate),
         _ => Err(TranslationError::InvalidPredicate(format!(
-            "unknown predicate: {}",
-            op
+            "unknown predicate: {op}"
         ))),
     }
 }
@@ -529,7 +525,7 @@ fn translate_predicate_func(op: &str, value: Option<&KdlValue>) -> Result<Predic
 fn is_pure_placeholder(s: &str) -> Option<&str> {
     let s = s.trim();
     if s.starts_with("{{") && s.ends_with("}}") {
-        let inner = s[2..s.len() - 2].trim();
+        let inner = s.get(2..s.len().saturating_sub(2))?.trim();
         // Check it doesn't contain another {{ (which would mean multiple placeholders)
         if !inner.contains("{{") && !inner.contains("}}") {
             return Some(inner);
@@ -565,8 +561,7 @@ fn kdl_to_predicate_value(value: &KdlValue) -> Result<PredicateValue> {
         KdlValue::Integer(i) => {
             let i64_val = i64::try_from(*i).map_err(|_| {
                 TranslationError::InvalidPredicate(format!(
-                    "integer value {} is outside the valid range for i64 ({} to {})",
-                    i,
+                    "integer value {i} is outside the valid range for i64 ({} to {})",
                     i64::MIN,
                     i64::MAX
                 ))
@@ -600,11 +595,11 @@ mod tests {
 
     #[test]
     fn test_simple_expect() {
-        let kdl: KdlDocument = r#"
+        let kdl: KdlDocument = r"
             expect {
                 status 200
             }
-        "#
+        "
         .parse()
         .unwrap();
 
