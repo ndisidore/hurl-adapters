@@ -191,7 +191,7 @@ POST "https://api.example.com/posts" name="create" {
             created_at jsonpath "$.created_at"
         }
         asserts {
-            jsonpath "$.id" "exists"
+            jsonpath "$.id" exists
             jsonpath "$.title" "==" "My First Post"
         }
     }
@@ -313,8 +313,8 @@ GET "https://app.example.com/admin/users" {
     expect {
         status 200
         asserts {
-            jsonpath "$.users" "isCollection"
-            jsonpath "$.users[0].id" "exists"
+            jsonpath "$.users" isCollection
+            jsonpath "$.users[0].id" exists
         }
     }
 }
@@ -479,37 +479,39 @@ Validate response data:
 
 ```kdl
 asserts {
-    // Equality
+    // Equality (symbol operators must be quoted)
     jsonpath "$.status" "==" "success"
     jsonpath "$.count" "==" 42
 
-    // Comparisons
+    // Comparisons (symbol operators must be quoted)
     jsonpath "$.age" ">" 18
     jsonpath "$.price" "<=" 99.99
 
-    // String operations
-    jsonpath "$.name" "startsWith" "John"
-    jsonpath "$.email" "endsWith" "@example.com"
-    jsonpath "$.description" "contains" "important"
-    jsonpath "$.code" "matches" "^[A-Z]{3}[0-9]{4}$"
+    // String operations (predicate names can be unquoted)
+    jsonpath "$.name" startsWith "John"
+    jsonpath "$.email" endsWith "@example.com"
+    jsonpath "$.description" contains "important"
+    jsonpath "$.code" matches "^[A-Z]{3}[0-9]{4}$"
 
-    // Existence
-    jsonpath "$.id" "exists"
-    jsonpath "$.deleted_at" "not exists"
+    // Existence (predicate names can be unquoted)
+    jsonpath "$.id" exists
+    jsonpath "$.deleted_at" not exists
 
-    // Type checks
-    jsonpath "$.count" "isInteger"
-    jsonpath "$.price" "isFloat"
-    jsonpath "$.active" "isBoolean"
-    jsonpath "$.name" "isString"
-    jsonpath "$.items" "isCollection"
-    jsonpath "$.tags" "isEmpty"
+    // Type checks (predicate names can be unquoted)
+    jsonpath "$.count" isInteger
+    jsonpath "$.price" isFloat
+    jsonpath "$.active" isBoolean
+    jsonpath "$.name" isString
+    jsonpath "$.items" isCollection
+    jsonpath "$.tags" isEmpty
 
     // Status and duration
     status "==" 200
     duration "<" 1000
 }
 ```
+
+> **Syntax Note:** Symbol operators (`==`, `!=`, `>`, `>=`, `<`, `<=`) must be quoted. Predicate names (`exists`, `isString`, `contains`, etc.) can be unquoted.
 
 ---
 

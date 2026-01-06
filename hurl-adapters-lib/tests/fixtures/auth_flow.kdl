@@ -13,7 +13,7 @@ POST "https://api.example.com/auth/login" name="login" {
             user_id jsonpath "$.user.id"
         }
         asserts {
-            jsonpath "$.access_token" "exists"
+            jsonpath "$.access_token" exists
         }
     }
 }
@@ -26,7 +26,7 @@ GET "https://api.example.com/users/{{login_user_id}}" {
         status 200
         asserts {
             jsonpath "$.id" "==" "{{login_user_id}}"
-            jsonpath "$.role" "isString"
+            jsonpath "$.role" isString
         }
     }
 }
