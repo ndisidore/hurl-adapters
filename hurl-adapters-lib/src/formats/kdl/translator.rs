@@ -12,6 +12,10 @@ use crate::formats::kdl::VALID_HTTP_METHODS;
 use crate::writer::hurl_file_to_string;
 
 /// Translates a KDL document to a Hurl file AST.
+///
+/// # Errors
+///
+/// Returns an error if the KDL document contains invalid structure.
 pub fn translate(doc: &KdlDocument) -> Result<HurlFile> {
     let mut entries = Vec::new();
     let mut step_names = HashSet::new();
@@ -32,6 +36,10 @@ pub fn translate(doc: &KdlDocument) -> Result<HurlFile> {
 }
 
 /// Translates a KDL document to a Hurl format string.
+///
+/// # Errors
+///
+/// Returns an error if the KDL document contains invalid structure.
 pub fn translate_to_string(doc: &KdlDocument) -> Result<String> {
     let hurl_file = translate(doc)?;
     Ok(hurl_file_to_string(&hurl_file))

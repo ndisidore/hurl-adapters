@@ -27,6 +27,10 @@ use crate::writer::helpers::{
 ///     body json { ... }
 /// }
 /// ```
+///
+/// # Errors
+///
+/// Returns an error if the request structure is invalid.
 pub fn translate_request(node: &KdlNode) -> Result<Request> {
     let method_str = node.name().value();
 
@@ -58,22 +62,22 @@ pub fn translate_request(node: &KdlNode) -> Result<Request> {
                     headers.extend(translate_headers(child)?);
                 }
                 "query" => {
-                    sections.push(translate_query_section(child)?);
+                    sections.push(translate_query_section(child));
                 }
                 "form" => {
-                    sections.push(translate_form_section(child)?);
+                    sections.push(translate_form_section(child));
                 }
                 "multipart" => {
-                    sections.push(translate_multipart_section(child)?);
+                    sections.push(translate_multipart_section(child));
                 }
                 "cookies" => {
-                    sections.push(translate_cookies_section(child)?);
+                    sections.push(translate_cookies_section(child));
                 }
                 "basic-auth" => {
-                    sections.push(translate_basic_auth_section(child)?);
+                    sections.push(translate_basic_auth_section(child));
                 }
                 "options" => {
-                    sections.push(translate_options_section(child)?);
+                    sections.push(translate_options_section(child));
                 }
                 "body" => {
                     body = Some(translate_body(child)?);
@@ -83,8 +87,7 @@ pub fn translate_request(node: &KdlNode) -> Result<Request> {
                 }
                 other => {
                     return Err(TranslationError::InvalidStructure(format!(
-                        "unknown request section: {}",
-                        other
+                        "unknown request section: {other}"
                     )));
                 }
             }
@@ -117,7 +120,7 @@ fn translate_headers(node: &KdlNode) -> Result<Vec<KeyValue>> {
                 .first()
                 .and_then(|e| e.value().as_string())
                 .ok_or_else(|| TranslationError::MissingRequiredField {
-                    node: format!("headers.{}", key),
+                    node: format!("headers.{key}"),
                     field: "value".to_string(),
                 })?;
 
@@ -137,31 +140,31 @@ fn translate_headers(node: &KdlNode) -> Result<Vec<KeyValue>> {
 }
 
 /// Translates a query section.
-fn translate_query_section(node: &KdlNode) -> Result<Section> {
-    let params = translate_key_value_children(node)?;
-    Ok(Section {
+fn translate_query_section(node: &KdlNode) -> Section {
+    let params = translate_key_value_children(node);
+    Section {
         line_terminators: vec![],
         space0: empty_whitespace(),
         line_terminator0: simple_line_terminator(),
         value: SectionValue::QueryParams(params, true), // Use short syntax [Query]
         source_info: dummy_source_info(),
-    })
+    }
 }
 
 /// Translates a form section.
-fn translate_form_section(node: &KdlNode) -> Result<Section> {
-    let params = translate_key_value_children(node)?;
-    Ok(Section {
+fn translate_form_section(node: &KdlNode) -> Section {
+    let params = translate_key_value_children(node);
+    Section {
         line_terminators: vec![],
         space0: empty_whitespace(),
         line_terminator0: simple_line_terminator(),
         value: SectionValue::FormParams(params, true), // Use short syntax [Form]
         source_info: dummy_source_info(),
-    })
+    }
 }
 
 /// Translates a multipart section.
-fn translate_multipart_section(node: &KdlNode) -> Result<Section> {
+fn translate_multipart_section(node: &KdlNode) -> Section {
     let mut params = Vec::new();
 
     if let Some(children) = node.children() {
@@ -193,17 +196,17 @@ fn translate_multipart_section(node: &KdlNode) -> Result<Section> {
         }
     }
 
-    Ok(Section {
+    Section {
         line_terminators: vec![],
         space0: empty_whitespace(),
         line_terminator0: simple_line_terminator(),
         value: SectionValue::MultipartFormData(params, true), // Use short syntax [Multipart]
         source_info: dummy_source_info(),
-    })
+    }
 }
 
 /// Translates a cookies section.
-fn translate_cookies_section(node: &KdlNode) -> Result<Section> {
+fn translate_cookies_section(node: &KdlNode) -> Section {
     let mut cookies = Vec::new();
 
     if let Some(children) = node.children() {
@@ -227,17 +230,17 @@ fn translate_cookies_section(node: &KdlNode) -> Result<Section> {
         }
     }
 
-    Ok(Section {
+    Section {
         line_terminators: vec![],
         space0: empty_whitespace(),
         line_terminator0: simple_line_terminator(),
         value: SectionValue::Cookies(cookies),
         source_info: dummy_source_info(),
-    })
+    }
 }
 
 /// Translates a basic-auth section.
-fn translate_basic_auth_section(node: &KdlNode) -> Result<Section> {
+fn translate_basic_auth_section(node: &KdlNode) -> Section {
     let kv = if let Some(children) = node.children() {
         if let Some(child) = children.nodes().first() {
             let username = child.name().value();
@@ -263,29 +266,29 @@ fn translate_basic_auth_section(node: &KdlNode) -> Result<Section> {
         None
     };
 
-    Ok(Section {
+    Section {
         line_terminators: vec![],
         space0: empty_whitespace(),
         line_terminator0: simple_line_terminator(),
         value: SectionValue::BasicAuth(kv),
         source_info: dummy_source_info(),
-    })
+    }
 }
 
 /// Translates an options section.
-fn translate_options_section(_node: &KdlNode) -> Result<Section> {
+fn translate_options_section(_node: &KdlNode) -> Section {
     // TODO: Implement full options translation
-    Ok(Section {
+    Section {
         line_terminators: vec![],
         space0: empty_whitespace(),
         line_terminator0: simple_line_terminator(),
         value: SectionValue::Options(vec![]),
         source_info: dummy_source_info(),
-    })
+    }
 }
 
 /// Translates children nodes to key-value pairs.
-fn translate_key_value_children(node: &KdlNode) -> Result<Vec<KeyValue>> {
+fn translate_key_value_children(node: &KdlNode) -> Vec<KeyValue> {
     let mut params = Vec::new();
 
     if let Some(children) = node.children() {
@@ -309,7 +312,7 @@ fn translate_key_value_children(node: &KdlNode) -> Result<Vec<KeyValue>> {
         }
     }
 
-    Ok(params)
+    params
 }
 
 /// Converts a KDL value to a string representation.
@@ -324,12 +327,13 @@ fn kdl_value_to_string(value: &kdl::KdlValue) -> String {
 }
 
 /// Extracts the step name from a request node (from name="..." property).
+#[must_use]
 pub fn get_step_name(node: &KdlNode) -> Option<String> {
     node.entries()
         .iter()
-        .find(|e| e.name().map(|n| n.value()) == Some("name"))
+        .find(|e| e.name().map(kdl::KdlIdentifier::value) == Some("name"))
         .and_then(|e| e.value().as_string())
-        .map(|s| s.to_string())
+        .map(String::from)
 }
 
 #[cfg(test)]

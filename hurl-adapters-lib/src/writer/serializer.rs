@@ -1,12 +1,15 @@
 //! Hurl AST to string serialization.
 
+use std::fmt::Write;
+
 use hurl_core::ast::{
     Bytes, HurlFile, MultipartParam, Predicate, PredicateFuncValue, PredicateValue, Query,
     QueryValue, RegexValue, Response, Section, SectionValue, StatusValue, VersionValue,
 };
 use hurl_core::typing::ToSource;
 
-/// Converts a HurlFile AST to a string.
+/// Converts a `HurlFile` AST to a string.
+#[must_use]
 pub fn hurl_file_to_string(hurl_file: &HurlFile) -> String {
     let mut output = String::new();
 
@@ -49,6 +52,7 @@ pub fn hurl_file_to_string(hurl_file: &HurlFile) -> String {
 }
 
 /// Formats a body bytes to hurl string.
+#[must_use]
 pub fn format_bytes(bytes: &Bytes) -> String {
     match bytes {
         Bytes::Json(json) => json.to_source().to_string(),
@@ -62,21 +66,13 @@ pub fn format_bytes(bytes: &Bytes) -> String {
 }
 
 /// Formats a section to hurl string.
+#[must_use]
 pub fn format_section(section: &Section) -> String {
     let mut output = String::new();
-    output.push_str(&format!("[{}]\n", section.identifier()));
+    let _ = writeln!(output, "[{}]", section.identifier());
 
     match &section.value {
-        SectionValue::QueryParams(params, _) => {
-            for param in params {
-                output.push_str(param.key.to_source().as_str());
-                output.push(':');
-                output.push(' ');
-                output.push_str(param.value.to_source().as_str());
-                output.push('\n');
-            }
-        }
-        SectionValue::FormParams(params, _) => {
+        SectionValue::QueryParams(params, _) | SectionValue::FormParams(params, _) => {
             for param in params {
                 output.push_str(param.key.to_source().as_str());
                 output.push(':');
@@ -159,6 +155,7 @@ pub fn format_section(section: &Section) -> String {
 }
 
 /// Formats a query to hurl string.
+#[must_use]
 pub fn format_query(query: &Query) -> String {
     match &query.value {
         QueryValue::Status => "status".to_string(),
@@ -182,7 +179,7 @@ pub fn format_query(query: &Query) -> String {
                 RegexValue::Template(t) => t.to_source().to_string(),
                 RegexValue::Regex(r) => r.inner.to_string(),
             };
-            format!("regex \"{}\"", pattern)
+            format!("regex \"{pattern}\"")
         }
         QueryValue::Variable { name, .. } => {
             format!("variable \"{}\"", name.to_source())
@@ -197,6 +194,7 @@ pub fn format_query(query: &Query) -> String {
 }
 
 /// Formats a predicate to hurl string.
+#[must_use]
 pub fn format_predicate(predicate: &Predicate) -> String {
     let mut output = String::new();
 
@@ -257,6 +255,7 @@ pub fn format_predicate(predicate: &Predicate) -> String {
 }
 
 /// Formats a predicate value to hurl string.
+#[must_use]
 pub fn format_predicate_value(value: &PredicateValue) -> String {
     match value {
         PredicateValue::String(t) => {
@@ -264,7 +263,7 @@ pub fn format_predicate_value(value: &PredicateValue) -> String {
             if s.starts_with("{{") {
                 s
             } else {
-                format!("\"{}\"", s)
+                format!("\"{s}\"")
             }
         }
         PredicateValue::Number(n) => n.to_string(),
@@ -282,6 +281,7 @@ pub fn format_predicate_value(value: &PredicateValue) -> String {
 }
 
 /// Formats a response to hurl string.
+#[must_use]
 pub fn format_response(response: &Response) -> String {
     let mut output = String::new();
 
@@ -298,7 +298,7 @@ pub fn format_response(response: &Response) -> String {
         StatusValue::Specific(code) => code.to_string(),
     };
 
-    output.push_str(&format!("{} {}\n", version, status));
+    let _ = writeln!(output, "{version} {status}");
 
     for header in &response.headers {
         output.push_str(header.key.to_source().as_str());
