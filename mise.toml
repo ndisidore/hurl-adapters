@@ -1,0 +1,35 @@
+[tools]
+"cargo:cargo-audit" = "0.22.0"
+rust = { version = "1.92.0", components = "rustfmt,clippy" }
+
+[tasks.build]
+description = "Build all packages"
+run = "cargo build --workspace"
+
+[tasks.test]
+description = "Run all tests"
+run = "cargo test --workspace"
+
+[tasks.clippy]
+description = "Run clippy lints"
+run = "cargo clippy --workspace -- -D warnings"
+
+[tasks.fmt]
+description = "Format code"
+run = "cargo fmt --all"
+
+[tasks.fmt-check]
+description = "Check code formatting"
+run = "cargo fmt --check --all"
+
+[tasks.audit]
+description = "Run security audit"
+run = "cargo audit"
+
+[tasks.check]
+description = "Check code compiles"
+run = "cargo check --workspace"
+
+[tasks.ci]
+description = "Run all CI checks"
+depends = ["fmt-check", "clippy", "test", "audit"]
