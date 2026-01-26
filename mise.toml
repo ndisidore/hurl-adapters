@@ -1,6 +1,6 @@
 [tools]
 "cargo:cargo-audit" = "0.22.0"
-rust = { version = "1.92.0", components = "rustfmt,clippy" }
+rust = { version = "1.93.0", components = "rustfmt,clippy" }
 
 [tasks.build]
 description = "Build all packages"
